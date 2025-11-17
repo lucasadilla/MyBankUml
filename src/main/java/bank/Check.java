@@ -1,24 +1,20 @@
 package bank;
 
+import java.math.BigDecimal;
+
 public class Check extends Account {
-    public Check(Customer customer) {
-        super(customer);
+    
+	//new checking account for a customer
+	public Check(String accountID, Customer customer, BigDecimal openingBalance) {
+		super(accountID, customer, openingBalance);
+	}
 
-    }
-    public void title(){
-        System.out.println("**Check Title**");
-    }
+	//returns the type of this account
+	@Override
+	public String getAccountType() {
+		// TODO Auto-generated method stub
+		return "CHECKING";
+	}
 
-    @Override
-    public void pay() {
-        //check title
-        title();
-        System.out.println("Check payment for customer: " + customer.getName());
-    }
-
-    @Override
-    public void receipt() {
-        System.out.println("Check receipt for customer: " + customer.getName());    
-    }
 }
 
