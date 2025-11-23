@@ -1,0 +1,8 @@
+# Database Configuration Example
+# Copy this file to db.properties and update with your MySQL credentials
+
+db.url=jdbc:mysql://localhost:3306
+db.username=your_username
+db.password=your_password
+db.database=mybankuml
+

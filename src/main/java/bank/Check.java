@@ -1,24 +1,31 @@
 package bank;
 
 public class Check extends Account {
-    public Check(Customer customer) {
-        super(customer);
+    private String checkAccountID;
 
+    public Check(String accountID, Customer owner, double initialBalance) {
+        super(accountID, owner, initialBalance);
+        this.checkAccountID = accountID;
     }
-    public void title(){
+
+    @Override
+    public boolean canDebit(double amount) {
+        if (amount <= 0) {
+            return false;
+        }
+        return accountBalance >= amount;
+    }
+
+    public void title() {
         System.out.println("**Check Title**");
     }
 
-    @Override
     public void pay() {
-        //check title
         title();
-        System.out.println("Check payment for customer: " + customer.getName());
+        System.out.println("Check payment for customer: " + accountOwner.getUserName());
     }
 
-    @Override
     public void receipt() {
-        System.out.println("Check receipt for customer: " + customer.getName());    
+        System.out.println("Check receipt for customer: " + accountOwner.getUserName());
     }
 }
-

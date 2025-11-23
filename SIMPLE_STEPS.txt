@@ -1,0 +1,79 @@
+STEP-BY-STEP DATABASE SETUP
+============================
+
+STEP 1: Create the database tables
+------------------------------------
+Open Terminal and run this command:
+
+mysql -u root -pPassword1 school_project < database/schema_school_project.sql
+
+This will create all the tables needed for the banking system in your school_project database.
+
+
+STEP 2: Verify tables were created
+------------------------------------
+Run this command to check:
+
+mysql -u root -pPassword1 school_project -e "SHOW TABLES;"
+
+You should see tables like: users, accounts, transactions, banks, branches, etc.
+
+
+STEP 3: Compile the Java code
+------------------------------
+If you have Maven installed, run:
+
+mvn clean compile
+mvn dependency:copy-dependencies
+
+If you don't have Maven, make sure you have the Lombok JAR in the libs folder, then:
+
+javac -cp "libs/*" src/main/java/bank/*.java -d target/classes
+
+
+STEP 4: Test the connection
+----------------------------
+Run this command:
+
+java -cp "target/classes:target/dependency/*:libs/*" bank.QuickConnectionTest
+
+If you see "SUCCESS: Connected to database!" then everything is working.
+
+
+STEP 5: Use the database in your code
+--------------------------------------
+Your database is already configured with these settings:
+- URL: jdbc:mysql://localhost:3306
+- Username: root
+- Password: Password1
+- Database: school_project
+
+You can now use the Database class in your code like this:
+
+Database db = new Database(
+    "jdbc:mysql://localhost:3306",
+    "root",
+    "Password1",
+    "school_project"
+);
+
+if (db.connect()) {
+    // Your code here
+    db.disconnect();
+}
+
+
+TROUBLESHOOTING
+---------------
+If Step 1 fails:
+- Make sure MySQL is running
+- Check that the database "school_project" exists
+- Verify your password is correct
+
+If Step 4 fails:
+- Make sure you ran Step 1 first
+- Check that MySQL is running
+- Verify the classpath includes all dependencies
+
+That's it! Your database is ready to use.
+
