@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { api, Account } from "@/lib/api";
 import { ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,11 +38,12 @@ const steps = [
 interface FormData {
   name: string;
   email: string;
+  phone: string;
   amount: number;
   company: string;
   profession: string;
   experience: string;
-  industry: string;
+  industry: string; // Source account ID
   primaryGoal: string;
   targetAudience: string;
   contentTypes: string[];
@@ -65,16 +68,19 @@ const contentVariants = {
 };
 
 const ETransferForm = () => {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
+    phone: "",
     amount: 0,
     company: "",
     profession: "",
     experience: "",
-    industry: "",
+    industry: "", // Source account ID
     primaryGoal: "",
     targetAudience: "",
     contentTypes: [],
@@ -87,7 +93,25 @@ const ETransferForm = () => {
     additionalInfo: "",
   });
 
-  const updateFormData = (field: keyof FormData, value: number) => {
+  useEffect(() => {
+    const loadAccounts = async () => {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          const response = await api.getAccounts(user.userID);
+          if (response.success && response.accounts) {
+            setAccounts(response.accounts);
+          }
+        } catch (error) {
+          console.error("Error loading accounts:", error);
+        }
+      }
+    };
+    loadAccounts();
+  }, []);
+
+  const updateFormData = (field: keyof FormData, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -125,29 +149,79 @@ const ETransferForm = () => {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      toast.success("Form submitted successfully!");
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) {
+        toast.error("Please login first");
+        router.push("/login");
+        return;
+      }
+
+      // Validate required fields
+      if (!formData.industry) {
+        toast.error("Please select a source account");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!formData.email || !formData.email.trim()) {
+        toast.error("Please enter recipient email");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!formData.name || !formData.name.trim()) {
+        toast.error("Please enter recipient name");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!formData.amount || formData.amount <= 0) {
+        toast.error("Please enter a valid amount");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const user = JSON.parse(storedUser);
+      const response = await api.eTransfer({
+        customerID: user.userID,
+        sourceAccountID: formData.industry,
+        recipientEmail: formData.email.trim(),
+        recipientName: formData.name.trim(),
+        recipientPhone: formData.phone || "",
+        amount: formData.amount,
+        notificationMethod: "Email",
+      });
+
+      if (response.success && response.receipt) {
+        localStorage.setItem("lastReceipt", JSON.stringify(response.receipt));
+        toast.success("E-Transfer completed successfully!");
+        router.push("/receipt");
+      } else {
+        toast.error(response.message || "E-Transfer failed");
+        setIsSubmitting(false);
+      }
+    } catch (error: any) {
+      toast.error(error.message || "E-Transfer failed");
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   // Check if step is valid for next button
   const isStepValid = () => {
     switch (currentStep) {
       case 0:
-        return formData.email.trim() !== "";
+        // First step: need source account, recipient email, name, and amount
+        return formData.industry !== "" && 
+               formData.email.trim() !== "" && 
+               formData.name.trim() !== "" && 
+               formData.amount > 0;
       case 1:
-        return formData.profession.trim() !== "" && formData.industry !== "";
-      case 2:
-        return formData.primaryGoal !== "";
-      case 3:
-        return formData.stylePreference !== "";
-      case 4:
-        return formData.budget !== "" && formData.timeline !== "";
+        // Confirmation step is always valid
+        return true;
       default:
         return true;
     }
@@ -251,27 +325,53 @@ const ETransferForm = () => {
                             id="industry"
                             className="transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
                           >
-                            <SelectValue placeholder="Select an account" />
+                            <SelectValue placeholder="Select source account" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="savings-account">
-                              Savings
-                            </SelectItem>
-                            <SelectItem value="checkings-account">
-                              Checkings
-                            </SelectItem>
+                            {accounts.map((account) => (
+                              <SelectItem key={account.accountID} value={account.accountID}>
+                                {account.accountType} - ${account.balance.toFixed(2)}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </motion.div>
                       <motion.div variants={fadeInUp} className="space-y-2">
-                        <Label htmlFor="email">Recipient Email Address</Label>
+                        <Label htmlFor="name">Recipient Name</Label>
+                        <Input
+                          id="name"
+                          type="text"
+                          placeholder="Recipient name"
+                          value={formData.name}
+                          onChange={(e) =>
+                            updateFormData("name", e.target.value)
+                          }
+                          className="transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        />
+                      </motion.div>
+                      <motion.div variants={fadeInUp} className="space-y-2">
+                        <Label htmlFor="email">Recipient Email Address *</Label>
                         <Input
                           id="email"
                           type="email"
+                          required
                           placeholder="example@example.com"
                           value={formData.email}
                           onChange={(e) =>
                             updateFormData("email", e.target.value)
+                          }
+                          className="transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        />
+                      </motion.div>
+                      <motion.div variants={fadeInUp} className="space-y-2">
+                        <Label htmlFor="phone">Recipient Phone Number (Optional)</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="(555) 123-4567"
+                          value={formData.phone}
+                          onChange={(e) =>
+                            updateFormData("phone", e.target.value)
                           }
                           className="transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
                         />
@@ -308,13 +408,27 @@ const ETransferForm = () => {
                       <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
                         <motion.div variants={fadeInUp} className="flex justify-between items-center">
                           <span className="text-sm font-medium text-muted-foreground">From Account:</span>
-                          <span className="font-semibold">{formData.industry || "Not selected"}</span>
+                          <span className="font-semibold">
+                            {accounts.find(acc => acc.accountID === formData.industry)?.accountType || formData.industry || "Not selected"}
+                          </span>
+                        </motion.div>
+                        
+                        <motion.div variants={fadeInUp} className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-muted-foreground">Recipient Name:</span>
+                          <span className="font-semibold">{formData.name || "Not provided"}</span>
                         </motion.div>
                         
                         <motion.div variants={fadeInUp} className="flex justify-between items-center">
                           <span className="text-sm font-medium text-muted-foreground">Recipient Email:</span>
                           <span className="font-semibold">{formData.email || "Not provided"}</span>
                         </motion.div>
+                        
+                        {formData.phone && (
+                          <motion.div variants={fadeInUp} className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-muted-foreground">Recipient Phone:</span>
+                            <span className="font-semibold">{formData.phone}</span>
+                          </motion.div>
+                        )}
                         
                         <motion.div variants={fadeInUp} className="flex justify-between items-center border-t pt-4">
                           <span className="text-sm font-medium text-muted-foreground">Amount:</span>
@@ -323,7 +437,9 @@ const ETransferForm = () => {
 
                         <motion.div variants={fadeInUp} className="flex justify-between items-center border-t pt-4">
                           <span className="text-sm font-medium text-muted-foreground">Remaining Balance:</span>
-                          <span className="text-lg font-bold text-green-600 dark:text-green-400">$404</span>
+                          <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                            ${((accounts.find(acc => acc.accountID === formData.industry)?.balance || 0) - (formData.amount || 0)).toFixed(2)}
+                          </span>
                         </motion.div>
                       </div>
 

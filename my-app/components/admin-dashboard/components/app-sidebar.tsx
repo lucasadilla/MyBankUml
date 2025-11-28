@@ -3,20 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  IconCamera,
-  IconChartBar,
   IconDashboard,
-  IconDatabase,
-  IconFileAi,
-  IconFileDescription,
-  IconFileWord,
-  IconFolder,
-  IconHelp,
   IconInnerShadowTop,
   IconListDetails,
-  IconReport,
   IconSearch,
-  IconSettings,
   IconUsers
 } from "@tabler/icons-react";
 
@@ -43,112 +33,27 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/dash",
       icon: IconDashboard
     },
     {
-      title: "Lifecycle",
-      url: "#",
+      title: "Loan Requests",
+      url: "/admin/loans",
       icon: IconListDetails
     },
     {
-      title: "Analytics",
-      url: "#",
-      icon: IconChartBar
+      title: "Search Users",
+      url: "/admin/search",
+      icon: IconSearch
     },
     {
-      title: "Projects",
-      url: "#",
-      icon: IconFolder
-    },
-    {
-      title: "Team",
-      url: "#",
+      title: "Role Management",
+      url: "/admin/roles",
       icon: IconUsers
     }
   ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#"
-        },
-        {
-          title: "Archived",
-          url: "#"
-        }
-      ]
-    },
-    {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#"
-        },
-        {
-          title: "Archived",
-          url: "#"
-        }
-      ]
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#"
-        },
-        {
-          title: "Archived",
-          url: "#"
-        }
-      ]
-    }
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: IconSettings
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch
-    }
-  ],
-  documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: IconDatabase
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: IconReport
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: IconFileWord
-    }
-  ]
+  // We don't need extra cloud/doc/secondary sections for this dashboard,
+  // so navClouds, navSecondary, and documents have been removed.
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -168,11 +73,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
     </Sidebar>
   );

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { api, Account } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,14 +36,14 @@ const steps = [
 ];
 
 interface FormData {
-  accountNumber: number;
+  accountNumber: string; // Changed to string to store account ID
   name: string;
   email: string;
   amount: number;
   company: string;
   profession: string;
   experience: string;
-  industry: string;
+  industry: string; // Source account ID
   primaryGoal: string;
   targetAudience: string;
   contentTypes: string[];
@@ -70,15 +71,16 @@ const TransferForm = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [formData, setFormData] = useState<FormData>({
-    accountNumber: 0,
+    accountNumber: "", // Destination account ID
     name: "",
     email: "",
     amount: 0,
     company: "",
     profession: "",
     experience: "",
-    industry: "",
+    industry: "", // Source account ID
     primaryGoal: "",
     targetAudience: "",
     contentTypes: [],
@@ -90,6 +92,24 @@ const TransferForm = () => {
     features: [],
     additionalInfo: "",
   });
+
+  useEffect(() => {
+    const loadAccounts = async () => {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          const response = await api.getAccounts(user.userID);
+          if (response.success && response.accounts) {
+            setAccounts(response.accounts);
+          }
+        } catch (error) {
+          console.error("Error loading accounts:", error);
+        }
+      }
+    };
+    loadAccounts();
+  }, []);
 
   const updateFormData = (field: keyof FormData, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -129,15 +149,43 @@ const TransferForm = () => {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      toast.success("Transfer completed successfully!");
-      router.push("/dash");
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) {
+        toast.error("Please login first");
+        router.push("/login");
+        return;
+      }
+
+      const user = JSON.parse(storedUser);
+      if (!formData.industry || !formData.accountNumber) {
+        toast.error("Please select both source and destination accounts");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const response = await api.transferFunds({
+        customerID: user.userID,
+        sourceAccountID: formData.industry,
+        destinationAccountID: formData.accountNumber,
+        amount: formData.amount,
+      });
+
+      if (response.success && response.receipt) {
+        localStorage.setItem("lastReceipt", JSON.stringify(response.receipt));
+        toast.success("Transfer completed successfully!");
+        router.push("/receipt");
+      } else {
+        toast.error(response.message || "Transfer failed");
+        setIsSubmitting(false);
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Transfer failed");
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   // Check if step is valid for next button
@@ -251,27 +299,38 @@ const TransferForm = () => {
                             <SelectValue placeholder="Select an account" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="savings-account">
-                              Savings
-                            </SelectItem>
-                            <SelectItem value="checkings-account">
-                              Checkings
-                            </SelectItem>
+                            {accounts.map((account) => (
+                              <SelectItem key={account.accountID} value={account.accountID}>
+                                {account.accountType} - ${account.balance.toFixed(2)}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </motion.div>
                       <motion.div variants={fadeInUp} className="space-y-2">
-                        <Label htmlFor="email">Recipient Account Number</Label>
-                        <Input
-                          id="accountNumber"
-                          type="number"
-                          placeholder="123456781234"
-                          value={formData.accountNumber || ""}
-                          onChange={(e) =>
-                            updateFormData("accountNumber", e.target.value)
+                        <Label htmlFor="accountNumber">Destination Account</Label>
+                        <Select
+                          value={formData.accountNumber}
+                          onValueChange={(value) =>
+                            updateFormData("accountNumber", value)
                           }
-                          className="transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                        />
+                        >
+                          <SelectTrigger
+                            id="accountNumber"
+                            className="transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                          >
+                            <SelectValue placeholder="Select destination account" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {accounts
+                              .filter((acc) => acc.accountID !== formData.industry)
+                              .map((account) => (
+                                <SelectItem key={account.accountID} value={account.accountID}>
+                                  {account.accountType} - ${account.balance.toFixed(2)}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
                       </motion.div>
                       <motion.div variants={fadeInUp} className="space-y-2">
                         <Label htmlFor="amount">
@@ -305,12 +364,16 @@ const TransferForm = () => {
                       <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
                         <motion.div variants={fadeInUp} className="flex justify-between items-center">
                           <span className="text-sm font-medium text-muted-foreground">From Account:</span>
-                          <span className="font-semibold">{formData.industry || "Not selected"}</span>
+                          <span className="font-semibold">
+                            {accounts.find(acc => acc.accountID === formData.industry)?.accountType || formData.industry || "Not selected"}
+                          </span>
                         </motion.div>
                         
                         <motion.div variants={fadeInUp} className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-muted-foreground">Recipient Account Number:</span>
-                          <span className="font-semibold">{formData.accountNumber || "Not provided"}</span>
+                          <span className="text-sm font-medium text-muted-foreground">To Account:</span>
+                          <span className="font-semibold">
+                            {accounts.find(acc => acc.accountID === formData.accountNumber)?.accountType || formData.accountNumber || "Not provided"}
+                          </span>
                         </motion.div>
                         
                         <motion.div variants={fadeInUp} className="flex justify-between items-center border-t pt-4">
@@ -320,7 +383,9 @@ const TransferForm = () => {
 
                         <motion.div variants={fadeInUp} className="flex justify-between items-center border-t pt-4">
                           <span className="text-sm font-medium text-muted-foreground">Remaining Balance:</span>
-                          <span className="text-lg font-bold text-green-600 dark:text-green-400">$404</span>
+                          <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                            ${((accounts.find(acc => acc.accountID === formData.industry)?.balance || 0) - (formData.amount || 0)).toFixed(2)}
+                          </span>
                         </motion.div>
                       </div>
 

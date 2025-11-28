@@ -23,7 +23,7 @@ export function NavMain({
   return (
     <SidebarGroup>
       <SidebarGroupContent>
-        <SidebarGroupLabel>Home</SidebarGroupLabel>
+        <SidebarGroupLabel>Navigation</SidebarGroupLabel>
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
