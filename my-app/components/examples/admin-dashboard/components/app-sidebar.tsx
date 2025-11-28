@@ -47,7 +47,7 @@ const data = {
       icon: IconDashboard
     },
     {
-      title: "Lifecycle",
+      title: "Generate Statement",
       url: "#",
       icon: IconListDetails
     },

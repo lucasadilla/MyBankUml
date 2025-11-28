@@ -6,6 +6,9 @@ import { SiteHeader } from "./components/site-header";
 
 import data from "./data.json";
 
+<AppSidebar activeItem="Dashboard" />
+
+
 export default function Page() {
   return (
     <SidebarProvider

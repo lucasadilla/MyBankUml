@@ -2,7 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
+
 import {
+  IconArcheryArrow,
+  IconArrowBadgeRight,
   IconCamera,
   IconChartBar,
   IconDashboard,
@@ -17,7 +20,8 @@ import {
   IconReport,
   IconSearch,
   IconSettings,
-  IconUsers
+  IconUsers,
+  IconHistory
 } from "@tabler/icons-react";
 
 import {
@@ -36,122 +40,65 @@ import { NavUser } from "./nav-user";
 
 const data = {
   user: {
-    name: "shadcn",
+    name: "Team 18",
     email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg"
+    avatar: "/avatars/shadcn.jpg",
   },
   navMain: [
     {
-      title: "Dashboard",
-      url: "#",
-      icon: IconDashboard
+      name: "Dashboard",
+      url: "/dashboard",
+      icon: IconDashboard,
     },
     {
-      title: "Lifecycle",
-      url: "#",
-      icon: IconListDetails
+      name: "Transactions",
+      url: "/transactions",
+      icon: IconHistory,
     },
     {
-      title: "Analytics",
-      url: "#",
-      icon: IconChartBar
+      name: "Transfer",
+      url: "/transfer",
+      icon: IconArcheryArrow
     },
     {
-      title: "Projects",
+      name: "Loan Requests",
       url: "#",
-      icon: IconFolder
-    },
-    {
-      title: "Team",
-      url: "#",
-      icon: IconUsers
-    }
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#"
-        },
-        {
-          title: "Archived",
-          url: "#"
-        }
-      ]
-    },
-    {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#"
-        },
-        {
-          title: "Archived",
-          url: "#"
-        }
-      ]
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#"
-        },
-        {
-          title: "Archived",
-          url: "#"
-        }
-      ]
+      icon: IconUsers 
     }
   ],
   navSecondary: [
     {
-      title: "Settings",
+      name: "Settings",
       url: "#",
       icon: IconSettings
     },
     {
-      title: "Get Help",
+      name: "Get Help",
       url: "#",
       icon: IconHelp
     },
     {
-      title: "Search",
+      name: "Search",
       url: "#",
       icon: IconSearch
     }
   ],
   documents: [
     {
-      name: "Data Library",
-      url: "#",
+      name: "Generate Statement",
+      url: "/statement",
       icon: IconDatabase
     },
-    {
-      name: "Reports",
-      url: "#",
-      icon: IconReport
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: IconFileWord
-    }
   ]
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+/*  
+  👇 Add activeItem as a prop so Page can set the selected item
+*/
+export function AppSidebar({
+  activeItem,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & { activeItem?: string }) {
   return (
     <Sidebar collapsible="none" className="h-auto border-r" {...props}>
       <SidebarHeader className="border-b">
@@ -166,11 +113,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        {/* 👇 Pass activeItem down */}
+        <NavMain items={data.navMain} activeItem={activeItem} />
+        <NavDocuments items={data.documents} activeItem={activeItem} />
+        <NavSecondary items={data.navSecondary} activeItem={activeItem} className="mt-auto" />
       </SidebarContent>
+
       <SidebarFooter>
         <NavUser user={data.user} />
       </SidebarFooter>

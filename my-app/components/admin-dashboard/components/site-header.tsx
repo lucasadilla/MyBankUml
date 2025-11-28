@@ -27,7 +27,7 @@ export function SiteHeader() {
                 <Link href="/transfer">Transfer</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/etransfer">ETransfer</Link>
+                <Link href="/etransfer">E-Transfer</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
