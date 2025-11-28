@@ -3,7 +3,9 @@ package bank;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Database {
     private Connection connection;
@@ -11,6 +13,10 @@ public class Database {
     private String username;
     private String password;
     private String databaseName;
+
+    public Connection getConnection() {
+        return connection;
+    }
 
     public Database(String url, String username, String password, String databaseName) {
         this.url = url;
@@ -232,18 +238,34 @@ public class Database {
                      "source_account_id, destination_account_id, status, initiated_at) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         
+        System.out.println("========================================");
+        System.out.println("💾 Saving transaction to database");
+        System.out.println("  Transaction ID: " + transaction.getTransactionID());
+        System.out.println("  Customer ID: " + (transaction.getInitiatedBy() != null ? transaction.getInitiatedBy().getCustomerID() : "null"));
+        System.out.println("  Type: " + transaction.getClass().getSimpleName());
+        System.out.println("  Amount: $" + transaction.getTransactionAmount());
+        System.out.println("  Source Account: " + (transaction.getSourceAccount() != null ? transaction.getSourceAccount().getAccountID() : "null"));
+        System.out.println("  Destination Account: " + (transaction.getDestinationAccount() != null ? transaction.getDestinationAccount().getAccountID() : "null"));
+        System.out.println("  Status: " + transaction.getTransactionStatus());
+        
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, transaction.getTransactionID());
-            stmt.setString(2, transaction.getInitiatedBy().getCustomerID());
+            String customerID = transaction.getInitiatedBy() != null ? transaction.getInitiatedBy().getCustomerID() : null;
+            stmt.setString(2, customerID);
             stmt.setString(3, transaction.getClass().getSimpleName());
             stmt.setDouble(4, transaction.getTransactionAmount());
             stmt.setString(5, transaction.getSourceAccount() != null ? transaction.getSourceAccount().getAccountID() : null);
             stmt.setString(6, transaction.getDestinationAccount() != null ? transaction.getDestinationAccount().getAccountID() : null);
             stmt.setString(7, transaction.getTransactionStatus());
             stmt.setTimestamp(8, Timestamp.valueOf(transaction.getInitiatedAt()));
-            stmt.executeUpdate();
+            int rowsAffected = stmt.executeUpdate();
+            System.out.println("✓ Transaction saved successfully (rows affected: " + rowsAffected + ")");
+            System.out.println("========================================");
         } catch (SQLException e) {
-            System.err.println("Error saving transaction: " + e.getMessage());
+            System.err.println("✗ Error saving transaction: " + e.getMessage());
+            System.err.println("  SQL State: " + e.getSQLState());
+            System.err.println("  Error Code: " + e.getErrorCode());
+            e.printStackTrace();
         }
     }
 
@@ -251,6 +273,226 @@ public class Database {
         // Implementation would reconstruct transaction from database
         // Simplified for now
         return null;
+    }
+
+    public List<Map<String, Object>> getTransactionsForCustomer(String customerID) {
+        List<Map<String, Object>> transactions = new ArrayList<>();
+        
+        if (connection == null) {
+            System.err.println("✗ Database connection is null in getTransactionsForCustomer");
+            return transactions;
+        }
+        
+        String sql = "SELECT * FROM transactions WHERE customer_id = ? ORDER BY initiated_at DESC LIMIT 100";
+        System.out.println("========================================");
+        System.out.println("🔍 Querying transactions for customer: " + customerID);
+        System.out.println("📋 SQL: " + sql);
+        
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, customerID);
+            ResultSet rs = stmt.executeQuery();
+            int count = 0;
+            while (rs.next()) {
+                Map<String, Object> tx = new HashMap<>();
+                tx.put("transactionID", rs.getString("transaction_id"));
+                tx.put("customerID", rs.getString("customer_id"));
+                tx.put("transactionType", rs.getString("transaction_type"));
+                tx.put("amount", rs.getDouble("amount"));
+                tx.put("sourceAccountID", rs.getString("source_account_id"));
+                tx.put("destinationAccountID", rs.getString("destination_account_id"));
+                tx.put("status", rs.getString("status"));
+                Timestamp initiatedAt = rs.getTimestamp("initiated_at");
+                if (initiatedAt != null) {
+                    tx.put("initiatedAt", initiatedAt.toLocalDateTime().toString());
+                }
+                transactions.add(tx);
+                count++;
+                
+                // Debug: print first transaction details
+                if (count == 1) {
+                    System.out.println("  First transaction found:");
+                    System.out.println("    ID: " + tx.get("transactionID"));
+                    System.out.println("    Type: " + tx.get("transactionType"));
+                    System.out.println("    Amount: $" + tx.get("amount"));
+                }
+            }
+            System.out.println("✓ Retrieved " + count + " transaction(s) for customer " + customerID);
+            System.out.println("========================================");
+            
+            if (count == 0) {
+                // Debug: Check if there are any transactions at all for this customer
+                String checkSQL = "SELECT COUNT(*) as cnt FROM transactions WHERE customer_id = ?";
+                try (PreparedStatement checkStmt = connection.prepareStatement(checkSQL)) {
+                    checkStmt.setString(1, customerID);
+                    ResultSet checkRs = checkStmt.executeQuery();
+                    if (checkRs.next()) {
+                        int totalCount = checkRs.getInt("cnt");
+                        System.out.println("⚠️  Total transactions for customer " + customerID + ": " + totalCount);
+                    }
+                }
+                
+                // Debug: Show sample customer IDs from transactions table
+                String sampleSQL = "SELECT DISTINCT customer_id FROM transactions LIMIT 10";
+                try (PreparedStatement sampleStmt = connection.prepareStatement(sampleSQL)) {
+                    ResultSet sampleRs = sampleStmt.executeQuery();
+                    System.out.println("📋 Sample customer IDs in transactions table:");
+                    while (sampleRs.next()) {
+                        System.out.println("  Customer ID: " + sampleRs.getString("customer_id"));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("✗ Error getting transactions for customer: " + e.getMessage());
+            System.err.println("  SQL State: " + e.getSQLState());
+            System.err.println("  Error Code: " + e.getErrorCode());
+            e.printStackTrace();
+        }
+        return transactions;
+    }
+
+    public List<Map<String, Object>> getAllTransactions(String customerIDFilter) {
+        List<Map<String, Object>> transactions = new ArrayList<>();
+        String sql;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            if (customerIDFilter != null && !customerIDFilter.trim().isEmpty()) {
+                sql = "SELECT * FROM transactions WHERE customer_id = ? ORDER BY initiated_at DESC LIMIT 500";
+                stmt = connection.prepareStatement(sql);
+                stmt.setString(1, customerIDFilter.trim());
+                System.out.println("🔍 Querying transactions for customer: " + customerIDFilter.trim());
+            } else {
+                sql = "SELECT * FROM transactions ORDER BY initiated_at DESC LIMIT 500";
+                stmt = connection.prepareStatement(sql);
+                System.out.println("🔍 Querying all transactions");
+            }
+            
+            System.out.println("📋 Executing SQL: " + sql);
+            rs = stmt.executeQuery();
+            
+            int count = 0;
+            while (rs.next()) {
+                Map<String, Object> tx = new HashMap<>();
+                tx.put("transactionID", rs.getString("transaction_id"));
+                tx.put("customerID", rs.getString("customer_id"));
+                tx.put("transactionType", rs.getString("transaction_type"));
+                tx.put("amount", rs.getDouble("amount"));
+                tx.put("sourceAccountID", rs.getString("source_account_id"));
+                tx.put("destinationAccountID", rs.getString("destination_account_id"));
+                tx.put("status", rs.getString("status"));
+                Timestamp initiatedAt = rs.getTimestamp("initiated_at");
+                if (initiatedAt != null) {
+                    tx.put("initiatedAt", initiatedAt.toLocalDateTime().toString());
+                }
+                transactions.add(tx);
+                count++;
+            }
+            System.out.println("✓ Retrieved " + count + " transaction(s) from database");
+            
+        } catch (SQLException e) {
+            System.err.println("✗ Error getting all transactions: " + e.getMessage());
+            System.err.println("  SQL State: " + e.getSQLState());
+            System.err.println("  Error Code: " + e.getErrorCode());
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+            } catch (SQLException e) {
+                System.err.println("Error closing resources: " + e.getMessage());
+            }
+        }
+        return transactions;
+    }
+
+    public List<Map<String, Object>> getTransactionsForAccount(String accountID) {
+        List<Map<String, Object>> transactions = new ArrayList<>();
+        
+        if (connection == null) {
+            System.err.println("✗ Database connection is null in getTransactionsForAccount");
+            return transactions;
+        }
+        
+        String sql = "SELECT * FROM transactions WHERE source_account_id = ? OR destination_account_id = ? ORDER BY initiated_at DESC LIMIT 100";
+        System.out.println("========================================");
+        System.out.println("🔍 Querying transactions for account: " + accountID);
+        System.out.println("📋 SQL: " + sql);
+        
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, accountID);
+            stmt.setString(2, accountID);
+            
+            ResultSet rs = stmt.executeQuery();
+            int count = 0;
+            while (rs.next()) {
+                Map<String, Object> tx = new HashMap<>();
+                tx.put("transactionID", rs.getString("transaction_id"));
+                tx.put("customerID", rs.getString("customer_id"));
+                tx.put("transactionType", rs.getString("transaction_type"));
+                tx.put("amount", rs.getDouble("amount"));
+                tx.put("sourceAccountID", rs.getString("source_account_id"));
+                tx.put("destinationAccountID", rs.getString("destination_account_id"));
+                tx.put("status", rs.getString("status"));
+                Timestamp initiatedAt = rs.getTimestamp("initiated_at");
+                if (initiatedAt != null) {
+                    tx.put("initiatedAt", initiatedAt.toLocalDateTime().toString());
+                }
+                transactions.add(tx);
+                count++;
+                
+                // Debug: print first transaction details
+                if (count == 1) {
+                    System.out.println("  First transaction found:");
+                    System.out.println("    ID: " + tx.get("transactionID"));
+                    System.out.println("    Source: " + tx.get("sourceAccountID"));
+                    System.out.println("    Destination: " + tx.get("destinationAccountID"));
+                }
+            }
+            System.out.println("✓ Retrieved " + count + " transaction(s) for account " + accountID);
+            System.out.println("========================================");
+            
+            if (count == 0) {
+                // Debug: Check if there are any transactions at all
+                String checkSQL = "SELECT COUNT(*) as cnt FROM transactions WHERE source_account_id = ? OR destination_account_id = ?";
+                try (PreparedStatement checkStmt = connection.prepareStatement(checkSQL)) {
+                    checkStmt.setString(1, accountID);
+                    checkStmt.setString(2, accountID);
+                    ResultSet checkRs = checkStmt.executeQuery();
+                    if (checkRs.next()) {
+                        int totalCount = checkRs.getInt("cnt");
+                        System.out.println("⚠️  Total transactions matching account " + accountID + ": " + totalCount);
+                    }
+                }
+                
+                // Debug: Show sample account IDs from transactions table
+                String sampleSQL = "SELECT DISTINCT source_account_id, destination_account_id FROM transactions LIMIT 10";
+                try (PreparedStatement sampleStmt = connection.prepareStatement(sampleSQL)) {
+                    ResultSet sampleRs = sampleStmt.executeQuery();
+                    System.out.println("📋 Sample account IDs in transactions table:");
+                    while (sampleRs.next()) {
+                        System.out.println("  Source: " + sampleRs.getString("source_account_id") + 
+                                         ", Destination: " + sampleRs.getString("destination_account_id"));
+                    }
+                }
+                
+                // Debug: Show all account IDs
+                String allAccountsSQL = "SELECT account_id FROM accounts";
+                try (PreparedStatement allStmt = connection.prepareStatement(allAccountsSQL)) {
+                    ResultSet allRs = allStmt.executeQuery();
+                    System.out.println("📋 All account IDs in accounts table:");
+                    while (allRs.next()) {
+                        System.out.println("  Account ID: " + allRs.getString("account_id"));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("✗ Error getting transactions for account: " + e.getMessage());
+            System.err.println("  SQL State: " + e.getSQLState());
+            System.err.println("  Error Code: " + e.getErrorCode());
+            e.printStackTrace();
+        }
+        return transactions;
     }
 
     // Receipt operations

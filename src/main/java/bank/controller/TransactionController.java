@@ -72,8 +72,13 @@ public class TransactionController {
                 return ResponseEntity.status(404).body(response);
             }
             
-            Receipt receipt = customer.transferFunds(sourceAccount, destinationAccount, amount);
-            // Transaction is already saved as part of the receipt generation
+            // Create and execute the transfer transaction
+            TransferFunds transfer = new TransferFunds(sourceAccount, destinationAccount, amount, customer);
+            Receipt receipt = transfer.execute();
+            
+            // Save the transaction to database
+            database.saveTransaction(transfer);
+            
             database.saveReceipt(receipt);
             database.saveAccount(sourceAccount);
             database.saveAccount(destinationAccount);
@@ -144,11 +149,13 @@ public class TransactionController {
                 recipientName, recipientEmail, recipientPhone, customer);
             
             // Execute the e-transfer (debits source account)
-            Receipt receipt = customer.sendEtransfer(sourceAccount, recipient, amount, notificationMethod);
+            ETransfer eTransfer = new ETransfer(sourceAccount, recipient, amount, customer, notificationMethod);
+            Receipt receipt = eTransfer.execute();
             
             // Try to find recipient user by email and credit their account
             System.out.println("🔍 Looking for recipient with email: " + recipientEmail);
             User recipientUser = database.getUser(recipientEmail);
+            Account recipientAccount = null;
             
             if (recipientUser == null) {
                 System.out.println("⚠ Recipient email not found in system: " + recipientEmail + ". Money debited from source but recipient account not credited (external recipient).");
@@ -161,8 +168,6 @@ public class TransactionController {
                 recipientCustomer.getOwnedAccounts().clear();
                 recipientCustomer.getOwnedAccounts().addAll(recipientAccounts);
                 System.out.println("✓ Loaded " + recipientAccounts.size() + " account(s) for recipient");
-                
-                Account recipientAccount = null;
                 
                 // Use first account if available, or create a default checking account
                 if (!recipientCustomer.getOwnedAccounts().isEmpty()) {
@@ -186,6 +191,9 @@ public class TransactionController {
                 System.out.println("💰 Crediting $" + amount + " to recipient account: " + recipientAccount.getAccountID());
                 System.out.println("   Balance: $" + balanceBefore + " → $" + balanceAfter);
                 
+                // Update the transaction with the destination account
+                eTransfer.setDestinationAccount(recipientAccount);
+                
                 // Save the updated account to database
                 database.saveAccount(recipientAccount);
                 System.out.println("✓ Saved recipient account to database");
@@ -193,7 +201,9 @@ public class TransactionController {
                 System.out.println("⚠ Recipient found but is not a customer (role: " + recipientUser.getUserRole() + ")");
             }
             
-            // Transaction is already saved as part of the receipt generation
+            // Save the transaction to database (after setting destination account if found)
+            database.saveTransaction(eTransfer);
+            
             database.saveReceipt(receipt);
             database.saveAccount(sourceAccount);
             

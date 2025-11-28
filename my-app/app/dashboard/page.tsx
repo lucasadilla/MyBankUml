@@ -172,7 +172,7 @@ export default function UserDashboardPage() {
                     ${account.balance.toFixed(2)}
                   </div>
                   <Button variant="outline" size="sm" className="w-full" asChild>
-                    <Link href={`/transfer?account=${account.accountID}`}>View Details</Link>
+                    <Link href={`/accounts/${account.accountID}`}>View Details</Link>
                   </Button>
                 </CardContent>
               </Card>

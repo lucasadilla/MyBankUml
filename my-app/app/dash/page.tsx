@@ -162,19 +162,35 @@ export default function AdminDashboardPage() {
                 <h2 className="text-2xl font-semibold mb-4">Quick Actions</h2>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {isBankManager && (
-                    <Link href="/admin/loans">
-                      <Card className="cursor-pointer hover:bg-accent transition-colors">
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <DollarSign className="h-5 w-5" />
-                            Manage Loans
-                          </CardTitle>
-                          <CardDescription>
-                            Review and approve/reject loan requests
-                          </CardDescription>
-                        </CardHeader>
-                      </Card>
-                    </Link>
+                    <>
+                      <Link href="/admin/loans">
+                        <Card className="cursor-pointer hover:bg-accent transition-colors">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <DollarSign className="h-5 w-5" />
+                              Manage Loans
+                            </CardTitle>
+                            <CardDescription>
+                              Review and approve/reject loan requests
+                            </CardDescription>
+                          </CardHeader>
+                        </Card>
+                      </Link>
+
+                      <Link href="/banker/search">
+                        <Card className="cursor-pointer hover:bg-accent transition-colors">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <Users className="h-5 w-5" />
+                              Search Customers
+                            </CardTitle>
+                            <CardDescription>
+                              Find customer accounts by name, account number, or phone
+                            </CardDescription>
+                          </CardHeader>
+                        </Card>
+                      </Link>
+                    </>
                   )}
 
                   {isAdmin && (

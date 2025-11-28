@@ -5,6 +5,7 @@ export interface User {
   userName: string;
   userEmail: string;
   userRole: string;
+  userPhone?: string;
 }
 
 export interface AdminUserDetails extends User {
@@ -109,6 +110,29 @@ class ApiService {
         body: JSON.stringify(data),
       }
     );
+  }
+
+  async getAccountDetails(accountID: string) {
+    return this.request<{
+      success: boolean;
+      account?: {
+        accountID: string;
+        accountType: string;
+        balance: number;
+        customerID: string;
+        transactions?: {
+          transactionID: string;
+          customerID: string;
+          transactionType: string;
+          amount: number;
+          sourceAccountID: string | null;
+          destinationAccountID: string | null;
+          status: string;
+          initiatedAt: string;
+        }[];
+      };
+      message?: string;
+    }>(`/accounts/details/${accountID}`);
   }
 
   // Transactions
@@ -234,6 +258,72 @@ class ApiService {
     return this.request<{ success: boolean; user?: AdminUserDetails; message?: string }>(
       `/admin/users/${userID}`
     );
+  }
+
+  // Banker/Manager - Search customers only
+  async searchCustomers(params: {
+    name?: string;
+    accountNumber?: string;
+    phoneNumber?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== "") {
+        queryParams.append(key, value);
+      }
+    });
+    const url = `/banker/users/search?${queryParams.toString()}`;
+    console.log("🔍 API: Making customer search request to:", `${API_BASE_URL}${url}`);
+    return this.request<{ success: boolean; users?: User[]; message?: string }>(url);
+  }
+
+  async getCustomerDetails(customerID: string) {
+    return this.request<{
+      success: boolean;
+      customer?: {
+        userID: string;
+        userName: string;
+        userEmail: string;
+        userPhone: string;
+        userRole: string;
+        accounts?: {
+          accountID: string;
+          accountType: string;
+          balance: number;
+        }[];
+        transactions?: {
+          transactionID: string;
+          customerID: string;
+          transactionType: string;
+          amount: number;
+          sourceAccountID: string | null;
+          destinationAccountID: string | null;
+          status: string;
+          initiatedAt: string;
+        }[];
+      };
+      message?: string;
+    }>(`/banker/customers/${customerID}`);
+  }
+
+  async getTransactions(customerID?: string) {
+    const url = customerID 
+      ? `/banker/transactions?customerID=${encodeURIComponent(customerID)}`
+      : `/banker/transactions`;
+    return this.request<{
+      success: boolean;
+      transactions?: {
+        transactionID: string;
+        customerID: string;
+        transactionType: string;
+        amount: number;
+        sourceAccountID: string | null;
+        destinationAccountID: string | null;
+        status: string;
+        initiatedAt: string;
+      }[];
+      message?: string;
+    }>(url);
   }
 }
 

@@ -68,13 +68,22 @@ export default function AccountsPage() {
                 <div className="text-3xl font-bold mb-4">
                   ${account.balance.toFixed(2)}
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => router.push(`/transfer?account=${account.accountID}`)}
-                  className="w-full"
-                >
-                  Transfer Funds
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/accounts/${account.accountID}`)}
+                    className="flex-1"
+                  >
+                    View Details
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/transfer?account=${account.accountID}`)}
+                    className="flex-1"
+                  >
+                    Transfer
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Search, History } from "lucide-react";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 interface SimpleTransaction {
   transactionID: string;
@@ -28,6 +29,37 @@ export default function BankerTransactionsPage() {
   const [searchCustomer, setSearchCustomer] = useState("");
   const [transactions, setTransactions] = useState<SimpleTransaction[]>([]);
 
+  const loadTransactions = async (customerIDFilter?: string) => {
+    try {
+      setLoading(true);
+      console.log("📋 Loading transactions, filter:", customerIDFilter || "all");
+      const response = await api.getTransactions(customerIDFilter);
+      console.log("📋 Response:", response);
+      if (response.success && response.transactions) {
+        // Map transactionType to type for compatibility
+        const mappedTransactions = response.transactions.map(tx => ({
+          ...tx,
+          type: tx.transactionType,
+        }));
+        setTransactions(mappedTransactions);
+        console.log("📋 Mapped transactions:", mappedTransactions.length);
+        if (mappedTransactions.length === 0) {
+          toast.info("No transactions found in the database");
+        } else {
+          toast.success(`Loaded ${mappedTransactions.length} transaction(s)`);
+        }
+      } else {
+        console.error("📋 Failed response:", response);
+        toast.error(response.message || "Failed to load transactions");
+      }
+    } catch (error: any) {
+      console.error("📋 Error loading transactions:", error);
+      toast.error(error.message || "Failed to load transactions");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/login");
@@ -41,13 +73,13 @@ export default function BankerTransactionsPage() {
       return;
     }
 
-    // For now, just simulate loading state; backend listing can be added later.
-    setLoading(false);
+    // Load all transactions on page load
+    loadTransactions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isBanker, router]);
 
   const handleSearch = async () => {
-    // Placeholder for future integration with a /transactions search endpoint.
-    toast.info("Transaction search UI is ready; backend listing can be wired when available.");
+    await loadTransactions(searchCustomer.trim() || undefined);
   };
 
   if (loading || !user) {
@@ -94,8 +126,7 @@ export default function BankerTransactionsPage() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Note: Backend transaction listing is not fully implemented yet. This UI can be wired to
-            a `/api/transactions` search endpoint when available.
+            Leave customer ID blank to view all transactions, or enter a specific customer ID to filter.
           </p>
         </CardContent>
       </Card>
@@ -107,13 +138,18 @@ export default function BankerTransactionsPage() {
             Recent Transactions
           </CardTitle>
           <CardDescription>
-            Once wired, this table will show recent transactions matching your search criteria.
+            Showing {transactions.length} transaction(s) matching your search criteria.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {transactions.length === 0 ? (
+          {loading ? (
+            <div className="py-10 text-center">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+              <p className="text-muted-foreground text-sm">Loading transactions...</p>
+            </div>
+          ) : transactions.length === 0 ? (
             <div className="py-10 text-center text-muted-foreground text-sm">
-              No transactions to display yet. Implement backend listing to populate this table.
+              No transactions found. Try adjusting your search criteria.
             </div>
           ) : (
             <div className="overflow-x-auto">

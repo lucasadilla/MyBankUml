@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, Activity, History } from "lucide-react";
+import { Loader2, ArrowRight, Activity, History, Search } from "lucide-react";
 import Link from "next/link";
 
 export default function BankerDashboardPage() {
@@ -79,6 +79,20 @@ export default function BankerDashboardPage() {
                 </CardTitle>
                 <CardDescription>
                   Locate and reverse an incorrect transaction
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/banker/search">
+            <Card className="cursor-pointer hover:bg-accent transition-colors">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  Search Customers
+                </CardTitle>
+                <CardDescription>
+                  Find customer accounts by name, account number, or phone
                 </CardDescription>
               </CardHeader>
             </Card>

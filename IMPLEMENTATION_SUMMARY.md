@@ -143,3 +143,4 @@ my-app/
 - Authentication is checked on every protected page
 - Role-based access control is enforced throughout
 
+

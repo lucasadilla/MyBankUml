@@ -66,3 +66,4 @@ If this works, your credentials are correct. If not, fix the password.
 | "Communications link failure" | Start MySQL server |
 | "ClassNotFoundException" | Run `mvn dependency:copy-dependencies` |
 
+
