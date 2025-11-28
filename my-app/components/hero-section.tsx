@@ -7,7 +7,7 @@ import { Menu, X } from 'lucide-react'
 import Image from 'next/image'
 
 const menuItems = [
-    { name: 'Features', href: '#' },
+    { name: 'Features', href: '/transfer' },
     { name: 'About', href: '#' },
 ]
 
