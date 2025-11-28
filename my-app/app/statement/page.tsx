@@ -3,9 +3,10 @@ import * as React from "react";
 import MultiStepForm from "@/components/multi-step-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Header from "@/components/ui/components/header";
 
 
-export default function GenerateStatementPage() {
+export default function GenerateStatementPage() {<Header/>
 
 
   const [currentStep, setCurrentStep] = React.useState(1);

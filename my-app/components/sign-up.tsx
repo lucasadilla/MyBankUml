@@ -1,4 +1,4 @@
-import { LogoIcon } from '@/components/logo'
+import { LogoIcon } from './logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,7 +17,7 @@ export default function LoginPage() {
                             aria-label="go home">
                             <LogoIcon />
                         </Link>
-                        <h1 className="mb-1 mt-4 text-xl font-semibold">Create a Tailark Account</h1>
+                        <h1 className="mb-1 mt-4 text-xl font-semibold">Create a MyBankUML Account</h1>
                         <p className="text-sm">Welcome! Create an account to get started</p>
                     </div>
 

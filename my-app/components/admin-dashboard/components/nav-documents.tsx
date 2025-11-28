@@ -27,6 +27,7 @@ export function NavDocuments({
     url: string;
     icon: Icon;
   }[];
+  activeItem?: string;
 }) {
   const { isMobile } = useSidebar();
 

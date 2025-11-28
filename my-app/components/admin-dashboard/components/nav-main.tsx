@@ -15,10 +15,11 @@ export function NavMain({
   items
 }: {
   items: {
-    title: string;
+    name: string;
     url: string;
     icon?: Icon;
   }[];
+  activeItem?: string;
 }) {
   return (
     <SidebarGroup>
@@ -26,10 +27,10 @@ export function NavMain({
         <SidebarGroupLabel>Home</SidebarGroupLabel>
         <SidebarMenu>
           {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title}>
+            <SidebarMenuItem key={item.name}>
+              <SidebarMenuButton tooltip={item.name}>
                 {item.icon && <item.icon />}
-                <span>{item.title}</span>
+                <span>{item.name}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

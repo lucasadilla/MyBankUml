@@ -51,8 +51,8 @@ const data = {
       icon: IconDashboard,
     },
     {
-      name: "Transactions",
-      url: "/transactions",
+      name: "eTransfer",
+      url: "/eTransfer",
       icon: IconHistory,
     },
     {

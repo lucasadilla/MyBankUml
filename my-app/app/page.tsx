@@ -1,7 +1,13 @@
-import Page from "@/components/hero-section";
+import HeroSection from "@/components/hero-section";
+
+import Footer from "@/components/footer";
 
 export default function Home() {
-    return (
-        <Page />
-    );
+  return (
+    <main>
+      <HeroSection />
+      <Footer />
+
+    </main>
+  );
 }
